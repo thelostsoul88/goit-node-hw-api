@@ -49,7 +49,7 @@ const addContact = async (body) => {
 
     const newContact = { ...body, id: uuid() };
 
-    if (data.some((contact) => contact.phone !== newContact.phone)) {
+    if (data.some((contact) => contact.phone === newContact.phone)) {
       console.log("already have this contact!!".red);
 
       return;
