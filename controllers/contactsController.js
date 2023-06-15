@@ -70,6 +70,8 @@ const updateById = async (req, res) => {
   res.json(updateContact);
 };
 
+/** UpdateFavorite */
+
 const updateStatusContact = async (req, res) => {
   const { contactId } = req.params;
 
