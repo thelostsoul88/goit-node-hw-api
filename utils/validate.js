@@ -1,6 +1,7 @@
 const { dataValidator, favoriteValidator } = require("./dataValidator");
 const { Types } = require("mongoose");
 const errHttp = require("./errHttp");
+const wrapper = require("./wrapper");
 
 /** Validate Body */
 
@@ -46,4 +47,8 @@ const validateId = async (req, res, next) => {
   next();
 };
 
-module.exports = { validate, favoriteValidate, validateId };
+module.exports = {
+  validate: wrapper(validate),
+  favoriteValidate: wrapper(favoriteValidate),
+  validateId: wrapper(validateId),
+};
