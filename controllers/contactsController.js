@@ -81,6 +81,10 @@ const updateStatusContact = async (req, res) => {
     { new: true }
   );
 
+  if (!updateFavorite) {
+    throw errHttp(404, "Not found");
+  }
+
   res.json(updateFavorite);
 };
 
