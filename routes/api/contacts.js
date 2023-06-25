@@ -12,8 +12,11 @@ const {
   validateFavorite,
   validateId,
 } = require("../../middlewares/validate");
+const { authenticate } = require("../../middlewares/authenticate");
 
 const router = express.Router();
+
+router.use(authenticate);
 
 router.get("/", getAll);
 
