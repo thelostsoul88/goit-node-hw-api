@@ -1,10 +1,5 @@
 const express = require("express");
 const {
-  validate,
-  favoriteValidate,
-  validateId,
-} = require("../../utils/validate");
-const {
   getAll,
   getById,
   removeById,
@@ -12,8 +7,16 @@ const {
   updateById,
   updateStatusContact,
 } = require("../../controllers/contactsController");
+const {
+  validate,
+  validateFavorite,
+  validateId,
+} = require("../../middlewares/validate");
+const { authenticate } = require("../../middlewares/authenticate");
 
 const router = express.Router();
+
+router.use(authenticate);
 
 router.get("/", getAll);
 
@@ -28,7 +31,7 @@ router.put("/:contactId", validateId, validate, updateById);
 router.patch(
   "/:contactId/favorite",
   validateId,
-  favoriteValidate,
+  validateFavorite,
   updateStatusContact
 );
 

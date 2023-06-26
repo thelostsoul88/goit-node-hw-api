@@ -5,7 +5,9 @@ const Contact = require("../models/contacts");
 /** Add */
 
 const add = async (req, res) => {
-  const newContact = await Contact.create(req.body);
+  const { _id: owner } = req.user;
+
+  const newContact = await Contact.create({ ...req.body, owner });
 
   res.status(201).json(newContact);
 };
@@ -13,7 +15,22 @@ const add = async (req, res) => {
 /** Get */
 
 const getAll = async (req, res) => {
-  const contacts = await Contact.find();
+  const { page = 1, limit = 10, favorite = "" } = req.query;
+
+  const findOptions = {
+    owner: req.user._id,
+  };
+
+  if (favorite) {
+    findOptions.favorite = favorite;
+  }
+
+  const skip = (page - 1) * limit;
+
+  const contacts = await Contact.find(findOptions, "", {
+    skip,
+    limit,
+  });
 
   res.json(contacts);
 };
@@ -80,6 +97,10 @@ const updateStatusContact = async (req, res) => {
     { favorite: req.body.favorite },
     { new: true }
   );
+
+  if (!updateFavorite) {
+    throw errHttp(404, "Not found");
+  }
 
   res.json(updateFavorite);
 };
