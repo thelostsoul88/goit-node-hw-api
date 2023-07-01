@@ -1,18 +1,27 @@
+const fs = require("fs/promises");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const gravatar = require("gravatar");
+const jimp = require("jimp");
 const wrapper = require("../utils/wrapper");
 const User = require("../models/auth");
+const path = require("path");
+const errHttp = require("../utils/errHttp");
 
 const { SECRET_KEY } = process.env;
 
 /** Register */
 
-const register = async (req, res, next) => {
-  const { password } = req.body;
+const register = async (req, res) => {
+  const { password, email } = req.body;
 
   const hashPassword = await bcrypt.hash(password, 10);
 
-  const newUser = await User.create({ ...req.body, password: hashPassword });
+  const newUser = await User.create({
+    ...req.body,
+    password: hashPassword,
+    avatarURL: gravatar.url(email),
+  });
 
   const id = newUser._id;
   const token = jwt.sign({ id }, SECRET_KEY, { expiresIn: "31d" });
@@ -28,7 +37,7 @@ const register = async (req, res, next) => {
 
 /** Login */
 
-const login = async (req, res, next) => {
+const login = async (req, res) => {
   const { email } = req.body;
 
   const user = await User.findOne({ email });
@@ -48,17 +57,17 @@ const login = async (req, res, next) => {
 
 /** Logout */
 
-const logout = async (req, res, next) => {
+const logout = async (req, res) => {
   const { _id } = req.user;
 
   await User.findByIdAndUpdate(_id, { token: "" });
 
-  res.status(204).json();
+  res.status(204).end();
 };
 
 /** Current user */
 
-const current = (req, res, next) => {
+const current = (req, res) => {
   const { email, subscription } = req.user;
 
   res.json({
@@ -69,7 +78,7 @@ const current = (req, res, next) => {
 
 /** Update user subscription */
 
-const updateSubscription = async (req, res, next) => {
+const updateSubscription = async (req, res) => {
   const { subscription } = req.body;
   const { _id } = req.user;
   const user = await User.findByIdAndUpdate(
@@ -83,10 +92,39 @@ const updateSubscription = async (req, res, next) => {
   });
 };
 
+/** Update user Avatar */
+
+const updateAvatar = async (req, res) => {
+  if (!req.file) {
+    throw errHttp(400, "Missing field upload avatar");
+  }
+
+  const { _id } = req.user;
+  const { path: tmpUpload, originalname, size } = req.file;
+
+  const avatarDir = path.join(__dirname, "../public/avatars");
+
+  const fileName = `${_id}_${originalname}`;
+
+  const resUpload = path.join(avatarDir, fileName);
+
+  const img = await jimp.read(tmpUpload);
+
+  img.autocrop().cover(250, 250).write(tmpUpload);
+  await fs.rename(tmpUpload, resUpload);
+
+  const avatarURL = path.join("avatars", fileName);
+
+  await User.findByIdAndUpdate(_id, { avatarURL });
+
+  res.json({ avatarURL, size: `${size} KB` });
+};
+
 module.exports = {
   register: wrapper(register),
   login: wrapper(login),
   logout: wrapper(logout),
   current: wrapper(current),
   updateSubscription: wrapper(updateSubscription),
+  updateAvatar: wrapper(updateAvatar),
 };
