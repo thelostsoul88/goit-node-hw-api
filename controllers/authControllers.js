@@ -117,7 +117,7 @@ const updateAvatar = async (req, res) => {
 
   await User.findByIdAndUpdate(_id, { avatarURL });
 
-  res.json({ avatarURL, size: `${size} KB` });
+  res.json({ avatarURL });
 };
 
 module.exports = {
