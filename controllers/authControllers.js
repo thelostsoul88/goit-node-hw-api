@@ -1,12 +1,14 @@
 const fs = require("fs/promises");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const gravatar = require("gravatar");
 const jimp = require("jimp");
+const uuid = require("uuid").v4;
 const wrapper = require("../utils/wrapper");
 const User = require("../models/auth");
 const path = require("path");
 const errHttp = require("../utils/errHttp");
+const sendMail = require("../utils/sendMail");
 
 const { SECRET_KEY } = process.env;
 
@@ -16,16 +18,16 @@ const register = async (req, res) => {
   const { password, email } = req.body;
 
   const hashPassword = await bcrypt.hash(password, 10);
+  const verificationToken = uuid();
 
   const newUser = await User.create({
     ...req.body,
     password: hashPassword,
     avatarURL: gravatar.url(email),
+    verificationToken,
   });
 
-  const id = newUser._id;
-  const token = jwt.sign({ id }, SECRET_KEY, { expiresIn: "31d" });
-  await User.findByIdAndUpdate(id, { token });
+  await sendMail(email, verificationToken);
 
   res.status(201).json({
     user: {
@@ -100,7 +102,7 @@ const updateAvatar = async (req, res) => {
   }
 
   const { _id } = req.user;
-  const { path: tmpUpload, originalname, size } = req.file;
+  const { path: tmpUpload, originalname } = req.file;
 
   const avatarDir = path.join(__dirname, "../public/avatars");
 
@@ -120,6 +122,33 @@ const updateAvatar = async (req, res) => {
   res.json({ avatarURL });
 };
 
+/** Check Email */
+
+const verifyEmail = async (req, res) => {
+  const { verificationToken } = req.params;
+
+  const user = await User.findOne({ verificationToken });
+
+  await User.findByIdAndUpdate(user._id, {
+    verificationToken: null,
+    verify: true,
+  });
+
+  res.json({ message: "Verification successful" });
+};
+
+/** Send email again */
+
+const sendEmailAgain = async (req, res) => {
+  const { email } = req.body;
+
+  const user = await User.findOne({ email });
+
+  await sendMail(email, user.verificationToken);
+
+  res.json({ message: "Verification email sent" });
+};
+
 module.exports = {
   register: wrapper(register),
   login: wrapper(login),
@@ -127,4 +156,6 @@ module.exports = {
   current: wrapper(current),
   updateSubscription: wrapper(updateSubscription),
   updateAvatar: wrapper(updateAvatar),
+  verifyEmail: wrapper(verifyEmail),
+  sendEmailAgain: wrapper(sendEmailAgain),
 };

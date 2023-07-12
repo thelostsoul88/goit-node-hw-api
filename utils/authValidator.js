@@ -17,4 +17,11 @@ const updateSubscription = (data) => {
   return schema.validate(data);
 };
 
-module.exports = { userSchema, updateSubscription };
+const validationEmail = (data) => {
+  const schema = Joi.object({
+    email: Joi.string().email().required(),
+  });
+  return schema.validate(data);
+};
+
+module.exports = { userSchema, updateSubscription, validationEmail };
